@@ -1,55 +1,92 @@
-Project Overview
-This project focuses on predicting customer churn using exploratory data analysis (EDA) and machine learning techniques. The goal is to identify customers who are likely to leave the service and develop strategies to retain them. The project includes data preprocessing, feature engineering, model training, and evaluation.
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
-Technologies Used
-Python
-Pandas
-Scikit-learn
-Matplotlib
-Seaborn
-Key Features
-Data Cleaning and Preprocessing: Handling missing values, encoding categorical variables, and scaling numerical features.
-Exploratory Data Analysis (EDA): Visualizing data distributions, correlations, and key patterns to understand customer behavior.
-Feature Engineering: Creating meaningful features to improve model performance.
-Model Training and Evaluation: Training and evaluating machine learning models such as Logistic Regression, Random Forest, and Gradient Boosting.
-Model Performance Visualization: Visualizing model performance metrics and feature importance.
-Results
-Improved customer retention strategies by 20%.
-Identified key factors contributing to customer churn.
-Developed actionable insights for business stakeholders.
-Repository Structure
-Customer-Churn-Analysis/
-├── data/
-│   ├── raw/
-│   ├── processed/
-├── notebooks/
-│   ├── 01_data_preprocessing.ipynb
-│   ├── 02_eda.ipynb
-│   ├── 03_feature_engineering.ipynb
-│   ├── 04_model_training.ipynb
-│   ├── 05_model_evaluation.ipynb
-├── src/
-│   ├── data_preprocessing.py
-│   ├── eda.py
-│   ├── feature_engineering.py
-│   ├── model_training.py
-│   ├── model_evaluation.py
-├── README.md
-├── requirements.txt
-└── LICENSE
+# Load the dataset
+data = pd.read_csv('customer_churn_data.csv')
 
-How to Run
-Clone the repository:
-git clone https://github.com/keshavk1023/Customer-Churn-Analysis.git
-cd Customer-Churn-Analysis
+# Data Cleaning and Preprocessing
+# Handle missing values
+data.fillna(method='ffill', inplace=True)
 
-Install the required packages:
-pip install -r requirements.txt
+# Encode categorical variables
+label_encoder = LabelEncoder()
+data['Gender'] = label_encoder.fit_transform(data['Gender'])
+data['Geography'] = label_encoder.fit_transform(data['Geography'])
 
-Run the notebooks: Open the Jupyter notebooks in the notebooks directory to see the step-by-step process of data preprocessing, EDA, feature engineering, model training, and evaluation.
-Run the scripts: Alternatively, you can run the scripts in the src directory to execute the entire pipeline.
-Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
+# Feature Engineering
+# Create new features if necessary (example: tenure per product)
+data['Tenure_Per_Product'] = data['Tenure'] / (data['NumOfProducts'] + 1)
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Split the data into features and target variable
+X = data.drop(['Exited', 'CustomerId', 'Surname'], axis=1)
+y = data['Exited']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale the features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Model Training and Evaluation
+# Logistic Regression Model
+log_reg = LogisticRegression()
+log_reg.fit(X_train, y_train)
+y_pred_log_reg = log_reg.predict(X_test)
+
+# Random Forest Classifier Model
+rf_clf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_clf.fit(X_train, y_train)
+y_pred_rf_clf = rf_clf.predict(X_test)
+
+# Model Performance Visualization and Evaluation
+def evaluate_model(y_test, y_pred, model_name):
+    print(f"Model: {model_name}")
+    print("Accuracy:", accuracy_score(y_test, y_pred))
+    print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+    print("Classification Report:\n", classification_report(y_test, y_pred))
+    print("\n")
+
+evaluate_model(y_test, y_pred_log_reg, "Logistic Regression")
+evaluate_model(y_test, y_pred_rf_clf, "Random Forest Classifier")
+
+# Visualize feature importance for Random Forest Classifier
+feature_importances = pd.DataFrame(rf_clf.feature_importances_,
+                                   index=X.columns,
+                                   columns=['importance']).sort_values('importance', ascending=False)
+
+plt.figure(figsize=(10, 6))
+sns.barplot(x=feature_importances.importance, y=feature_importances.index)
+plt.title('Feature Importances - Random Forest Classifier')
+plt.show()
+
+# Exploratory Data Analysis (EDA)
+plt.figure(figsize=(10, 6))
+sns.countplot(x='Exited', data=data)
+plt.title('Customer Churn Distribution')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='Exited', y='CreditScore', data=data)
+plt.title('Credit Score vs Exited')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='Exited', y='Age', data=data)
+plt.title('Age vs Exited')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='Exited', y='Balance', data=data)
+plt.title('Balance vs Exited')
+plt.show()
+
+print("Customer Churn Analysis Completed.")
